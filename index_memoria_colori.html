@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🧠 Memoria Colori</title>
+  <style>
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:'Comic Sans MS', cursive, sans-serif;
+      background: radial-gradient(circle at top, #2c3e50, #111827 72%);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .app{
+      width:min(980px, calc(100vw - 24px));
+      background:rgba(15, 23, 42, 0.84);
+      border:2px solid rgba(255,255,255,.12);
+      border-radius:28px;
+      padding:24px;
+      box-shadow:0 18px 50px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      position:relative;
+    }
+    h1{
+      margin:0 0 8px;
+      text-align:center;
+      font-size:clamp(2rem, 4vw, 3.2rem);
+      color:#f1c40f;
+      text-shadow:0 2px 0 rgba(0,0,0,.35);
+    }
+    .subtitle{
+      text-align:center;
+      margin:0 0 18px;
+      opacity:.9;
+      line-height:1.5;
+    }
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+      margin-bottom:16px;
+    }
+    .btn{
+      border:0;
+      border-radius:14px;
+      padding:12px 18px;
+      font:inherit;
+      font-weight:700;
+      cursor:pointer;
+      color:white;
+      background:#34495e;
+      transition:transform .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow:0 8px 18px rgba(0,0,0,.18);
+    }
+    .btn:hover{ transform:translateY(-2px); background:#2ecc71; }
+    .btn:active{ transform:translateY(1px) scale(.98); }
+    .btn.secondary{ background:#8e44ad; }
+    .btn.secondary:hover{ background:#9b59b6; }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+    .btn:disabled:hover{ background:#34495e; }
+
+    .scoreboard{
+      display:flex;
+      gap:12px;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+      font-size:1rem;
+    }
+    .pill{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      padding:10px 14px;
+      min-width:130px;
+      text-align:center;
+    }
+
+    .screen{ display:none; }
+    .screen.show{ display:block; }
+
+    .playfield{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:100%;
+      height:min(62vh,520px);
+      border-radius:22px;
+      border:2px dashed rgba(255,255,255,0.14);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    }
+
+    .simon{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(90px, 160px));
+      grid-template-rows:repeat(2, minmax(90px, 160px));
+      gap:14px;
+      width:min(340px, 80vw);
+    }
+    .pad{
+      border:none;
+      border-radius:20px;
+      cursor:pointer;
+      box-shadow:0 10px 20px rgba(0,0,0,.28);
+      transition:transform .08s ease, filter .12s ease, box-shadow .12s ease;
+      filter:brightness(.65) saturate(.85);
+    }
+    .pad:hover{ transform:scale(1.03); }
+    .pad.red{ background:#e74c3c; }
+    .pad.blue{ background:#3498db; }
+    .pad.green{ background:#2ecc71; }
+    .pad.yellow{ background:#f1c40f; }
+    .pad.lit{
+      filter:brightness(1.35) saturate(1.1);
+      box-shadow:0 0 30px 4px rgba(255,255,255,.35);
+    }
+    .pad.disabled{ pointer-events:none; }
+
+    .message{
+      text-align:center;
+      margin-top:14px;
+      min-height:1.5em;
+      font-weight:700;
+      line-height:1.4;
+    }
+    .footer{
+      margin-top:14px;
+      text-align:center;
+      opacity:.85;
+      font-size:.95rem;
+    }
+
+    .game-end{
+      text-align:center;
+      padding:22px 10px 6px;
+    }
+    .result{
+      font-size:clamp(1.4rem, 3vw, 2.3rem);
+      margin:10px 0 6px;
+      color:#f1c40f;
+    }
+
+    @media (max-width:640px){
+      .app{ padding:16px; border-radius:20px; }
+      .pill{ min-width: calc(50% - 6px); }
+      .simon{ grid-template-columns:repeat(2, minmax(76px, 140px)); grid-template-rows:repeat(2, minmax(76px, 140px)); }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section id="homeScreen" class="screen show">
+      <h1>🧠 Memoria Colori</h1>
+      <p class="subtitle">Guarda la sequenza di colori e poi ripetila.<br>Ogni round la sequenza si allunga di un colore.</p>
+
+      <div class="topbar">
+        <button class="btn" id="startBtn">Gioca</button>
+        <button class="btn secondary" id="resetBtn">Reset</button>
+        <button class="btn" id="commentsBtn">Commenti</button>
+        <button class="btn" id="funBtn">fun.games</button>
+      </div>
+
+      <div class="game-end">
+        <div class="result">Guarda bene, poi tocca a te.</div>
+        <p class="footer">Un gioco di memoria e concentrazione.</p>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <h1>🧠 Memoria Colori</h1>
+      <div class="scoreboard">
+        <div class="pill">Punti: <span id="score">0</span></div>
+        <div class="pill">Round: <span id="round">1</span></div>
+        <div class="pill">Record: <span id="best">0</span></div>
+      </div>
+
+      <div class="topbar">
+        <button class="btn secondary" id="backBtn">⬅ Torna alla home</button>
+      </div>
+
+      <div class="playfield">
+        <div class="simon" id="simon">
+          <button class="pad red" data-color="red" aria-label="Rosso"></button>
+          <button class="pad blue" data-color="blue" aria-label="Blu"></button>
+          <button class="pad green" data-color="green" aria-label="Verde"></button>
+          <button class="pad yellow" data-color="yellow" aria-label="Giallo"></button>
+        </div>
+      </div>
+      <div class="message" id="message">Guarda la sequenza...</div>
+      <div class="footer">Più vai avanti, più la sequenza si allunga.</div>
+    </section>
+
+    <section id="endScreen" class="screen">
+      <h1>🧠 Memoria Colori</h1>
+      <div class="game-end">
+        <div class="result" id="finalScore">Hai totalizzato 0 punti!</div>
+        <p class="subtitle" id="finalMessage">Hai ricordato bene... o quasi.</p>
+        <div class="topbar">
+          <button class="btn" id="playAgainBtn">Gioca ancora</button>
+          <button class="btn secondary" id="backHomeBtn">Torna alla home</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const homeScreen = document.getElementById('homeScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const endScreen = document.getElementById('endScreen');
+
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const commentsBtn = document.getElementById('commentsBtn');
+    const funBtn = document.getElementById('funBtn');
+    const backBtn = document.getElementById('backBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const backHomeBtn = document.getElementById('backHomeBtn');
+
+    const scoreEl = document.getElementById('score');
+    const roundEl = document.getElementById('round');
+    const bestEl = document.getElementById('best');
+    const messageEl = document.getElementById('message');
+    const finalScore = document.getElementById('finalScore');
+    const finalMessage = document.getElementById('finalMessage');
+    const pads = Array.from(document.querySelectorAll('.pad'));
+
+    const colors = ['red', 'blue', 'green', 'yellow'];
+
+    let sequence = [];
+    let playerStep = 0;
+    let score = 0;
+    let round = 1;
+    let best = 0;
+    let running = false;
+    let accepting = false;
+
+    function showScreen(screen) {
+      homeScreen.classList.remove('show');
+      gameScreen.classList.remove('show');
+      endScreen.classList.remove('show');
+      screen.classList.add('show');
+    }
+
+    function updateUI() {
+      scoreEl.textContent = score;
+      roundEl.textContent = round;
+      bestEl.textContent = best;
+    }
+
+    function setPadsDisabled(disabled) {
+      pads.forEach(p => p.classList.toggle('disabled', disabled));
+    }
+
+    function lightPad(color, duration) {
+      return new Promise(resolve => {
+        const pad = pads.find(p => p.dataset.color === color);
+        pad.classList.add('lit');
+        setTimeout(() => {
+          pad.classList.remove('lit');
+          setTimeout(resolve, 120);
+        }, duration);
+      });
+    }
+
+    async function playSequence() {
+      accepting = false;
+      setPadsDisabled(true);
+      messageEl.textContent = 'Guarda la sequenza...';
+      const speed = Math.max(280, 650 - round * 25);
+      await new Promise(r => setTimeout(r, 400));
+      for (const color of sequence) {
+        if (!running) return;
+        await lightPad(color, speed);
+      }
+      if (!running) return;
+      playerStep = 0;
+      accepting = true;
+      setPadsDisabled(false);
+      messageEl.textContent = 'Ora tocca a te!';
+    }
+
+    function nextRound() {
+      sequence.push(colors[Math.floor(Math.random() * colors.length)]);
+      playSequence();
+    }
+
+    function handlePadClick(color) {
+      if (!running || !accepting) return;
+      const pad = pads.find(p => p.dataset.color === color);
+      pad.classList.add('lit');
+      setTimeout(() => pad.classList.remove('lit'), 200);
+
+      if (color === sequence[playerStep]) {
+        playerStep += 1;
+        if (playerStep === sequence.length) {
+          accepting = false;
+          score += sequence.length;
+          round += 1;
+          best = Math.max(best, sequence.length);
+          updateUI();
+          messageEl.textContent = 'Bravo! Prossimo round...';
+          setTimeout(() => {
+            if (running) nextRound();
+          }, 700);
+        }
+      } else {
+        endGame();
+      }
+    }
+
+    pads.forEach(pad => {
+      pad.addEventListener('click', () => handlePadClick(pad.dataset.color));
+    });
+
+    function startGame() {
+      score = 0;
+      round = 1;
+      sequence = [];
+      playerStep = 0;
+      running = true;
+      accepting = false;
+      updateUI();
+      showScreen(gameScreen);
+      nextRound();
+    }
+
+    function resetGame() {
+      running = false;
+      accepting = false;
+      score = 0;
+      round = 1;
+      sequence = [];
+      setPadsDisabled(false);
+      updateUI();
+      messageEl.textContent = 'Guarda la sequenza e poi ripetila.';
+      showScreen(homeScreen);
+    }
+
+    function endGame() {
+      running = false;
+      accepting = false;
+      setPadsDisabled(true);
+      finalScore.textContent = 'Hai totalizzato ' + score + ' punti!';
+      const length = sequence.length;
+      if (length < 5) {
+        finalMessage.textContent = 'La memoria ti ha tradito un po\' troppo presto.';
+      } else if (length < 10) {
+        finalMessage.textContent = 'Ottima memoria! Sei arrivato lontano.';
+      } else {
+        finalMessage.textContent = 'Incredibile! Una memoria da campione.';
+      }
+      showScreen(endScreen);
+    }
+
+    startBtn.addEventListener('click', startGame);
+    playAgainBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    backBtn.addEventListener('click', resetGame);
+    backHomeBtn.addEventListener('click', resetGame);
+    commentsBtn.addEventListener('click', () => window.open('https://github.com/wmichaeljackson/memoria-colori/discussions/1', '_blank'));
+    funBtn.addEventListener('click', () => location.href = 'https://wmichaeljackson.github.io/fun.games/');
+
+    updateUI();
+    showScreen(homeScreen);
+  </script>
+</body>
+</html>
